@@ -150,7 +150,7 @@ Copy the `id` (UUID) from the response — you'll need it for the next steps.
 
 ---
 
-### Step 3 — Add more Maharashtra addresses
+### Step 3 — Add more addresses
 
 Use `POST /addresses/` with each payload below to populate the database for list and nearby tests.
 
