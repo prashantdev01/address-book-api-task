@@ -96,7 +96,6 @@ curl -X GET "http://localhost:8000/addresses/" \
 ```bash
 pytest -v                    # run all tests (quiet output)
 pytest -s -v                 # run with live terminal output — use this to see logs
-pytest -s -v -k "nearby"     # run only tests matching a keyword
 ```
 
 > **Note:** Always use `pytest -s -v` to see structured logs printed to the terminal during test runs.
