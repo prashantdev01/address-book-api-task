@@ -94,12 +94,15 @@ curl -X GET "http://localhost:8000/addresses/" \
 ## Run Tests
 
 ```bash
-pytest -v          # run all tests
-pytest -s -v       # run with live terminal output (logs + print statements visible)
-pytest -s -v -k "nearby"   # run only tests matching a keyword
+pytest -v                    # run all tests (quiet output)
+pytest -s -v                 # run with live terminal output — use this to see logs
+pytest -s -v -k "nearby"     # run only tests matching a keyword
 ```
 
-22 tests covering CRUD, validation, distance search, pagination, authentication, and idempotency.
+> **Note:** Always use `pytest -s -v` to see structured logs printed to the terminal during test runs.
+> Without `-s`, all log output is suppressed.
+
+23 tests covering CRUD, validation, distance search, pagination, authentication, and idempotency.
 
 ---
 
