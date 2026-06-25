@@ -33,7 +33,7 @@ async def client(db_session: AsyncSession) -> AsyncClient:
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
-        headers={"X-API-Key": "changeme-secret-key"},
+        headers={"X-API-Key": "prashant"},
     ) as ac:
         yield ac
     app.dependency_overrides.clear()

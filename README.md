@@ -49,7 +49,7 @@ cp .env.example .env
 | `DEBUG`                | `false`                                    | Enables pretty logs and SQL echo   |
 | `DATABASE_URL`         | `sqlite+aiosqlite:///./address_book.db`    | SQLAlchemy async database URL      |
 | `LOG_LEVEL`            | `INFO`                                     | `DEBUG / INFO / WARNING / ERROR`   |
-| `API_KEY`              | `changeme-secret-key`                      | API key for `X-API-Key` header     |
+| `API_KEY`              | `prashant`                                 | API key for `X-API-Key` header     |
 | `PAGINATION_MAX_LIMIT` | `500`                                      | Maximum allowed page size          |
 
 ---
@@ -72,18 +72,22 @@ uvicorn app.main:app --reload
 
 All `/addresses` endpoints require an `X-API-Key` header.
 
+**Default API Key: `prashant`**
+
 **In Swagger UI:**
-1. Click the **Authorize** button (top right)
-2. Enter the API key (default: `changeme-secret-key`)
-3. Click **Authorize** — all requests will now include the header automatically
+1. Open `http://localhost:8000/docs`
+2. Click the **Authorize** button (lock icon, top right)
+3. Enter `prashant` in the `X-API-Key` field
+4. Click **Authorize** → **Close**
+5. All requests now include the key automatically
 
 **In curl:**
 ```bash
 curl -X GET "http://localhost:8000/addresses/" \
-     -H "X-API-Key: changeme-secret-key"
+     -H "X-API-Key: prashant"
 ```
 
-> Set your own key in `.env`: `API_KEY=your-secret-key-here`
+> Override in `.env`: `API_KEY=your-secret-key-here`
 
 ---
 
@@ -113,7 +117,19 @@ pytest -s -v -k "nearby"   # run only tests matching a keyword
 
 ---
 
-## Address Payload
+## Testing in Swagger — Step by Step
+
+### Step 1 — Authorize
+
+1. Open **http://localhost:8000/docs**
+2. Click **Authorize** (lock icon, top right)
+3. Enter `prashant` → click **Authorize** → **Close**
+
+---
+
+### Step 2 — Create an address (`POST /addresses/`)
+
+Click `POST /addresses/` → **Try it out** → paste the body below → **Execute**
 
 ```json
 {
@@ -128,28 +144,83 @@ pytest -s -v -k "nearby"   # run only tests matching a keyword
 }
 ```
 
-### Field Validations
-
-| Field         | Rule                            |
-|---------------|---------------------------------|
-| `latitude`    | `-90.0` to `90.0`               |
-| `longitude`   | `-180.0` to `180.0`             |
-| All strings   | Non-empty, max length enforced  |
-| Coordinates   | Unique — no two addresses can share the same lat/lon |
+Copy the `id` (UUID) from the response — you'll need it for the next steps.
 
 ---
 
-## List Addresses
+### Step 3 — Add more Maharashtra addresses
 
-```
-GET /addresses/?search=mumbai&offset=0&limit=20
+Use `POST /addresses/` with each payload below to populate the database for list and nearby tests.
+
+**Shaniwar Wada, Pune**
+```json
+{
+  "name": "Shaniwar Wada",
+  "street": "Shivajinagar",
+  "city": "Pune",
+  "state": "Maharashtra",
+  "country": "India",
+  "postal_code": "411005",
+  "latitude": 18.5195,
+  "longitude": 73.8553
+}
 ```
 
-| Parameter | Default | Max   | Description                                  |
-|-----------|---------|-------|----------------------------------------------|
-| `search`  | —       | —     | Partial match on `name`, `city`, or `street` |
-| `offset`  | `0`     | —     | Pagination offset (0-based)                  |
-| `limit`   | `20`    | `500` | Page size                                    |
+**Shirdi Sai Baba Temple**
+```json
+{
+  "name": "Shirdi Sai Baba Temple",
+  "street": "Shirdi Gram Panchayat Road",
+  "city": "Shirdi",
+  "state": "Maharashtra",
+  "country": "India",
+  "postal_code": "423109",
+  "latitude": 19.7660,
+  "longitude": 74.4771
+}
+```
+
+**Ajanta Caves, Aurangabad**
+```json
+{
+  "name": "Ajanta Caves",
+  "street": "Ajanta Village, Sillod",
+  "city": "Aurangabad",
+  "state": "Maharashtra",
+  "country": "India",
+  "postal_code": "431117",
+  "latitude": 20.5519,
+  "longitude": 75.7033
+}
+```
+
+**Trimbakeshwar Shiva Temple, Nashik**
+```json
+{
+  "name": "Trimbakeshwar Shiva Temple",
+  "street": "Trimbak Road",
+  "city": "Nashik",
+  "state": "Maharashtra",
+  "country": "India",
+  "postal_code": "422212",
+  "latitude": 19.9323,
+  "longitude": 73.5298
+}
+```
+
+---
+
+### Step 4 — List addresses (`GET /addresses/`)
+
+Click `GET /addresses/` → **Try it out** → leave defaults → **Execute**
+
+**With search filter:**
+
+| Parameter | Value    | Effect                        |
+|-----------|----------|-------------------------------|
+| `search`  | `mumbai` | Returns only Mumbai addresses |
+| `offset`  | `0`      | Start from first record       |
+| `limit`   | `10`     | Return 10 per page            |
 
 **Response:**
 ```json
@@ -157,7 +228,7 @@ GET /addresses/?search=mumbai&offset=0&limit=20
   "data": {
     "total": 5,
     "offset": 0,
-    "limit": 20,
+    "limit": 10,
     "items": [ ... ]
   },
   "message": "Addresses retrieved successfully.",
@@ -167,38 +238,79 @@ GET /addresses/?search=mumbai&offset=0&limit=20
 
 ---
 
-## Distance Search
+### Step 5 — Get address by ID (`GET /addresses/{id}`)
 
-```
-GET /addresses/nearby?latitude=18.5195&longitude=73.8553&distance_km=100
-```
-
-Returns all addresses within `distance_km` kilometres of the given coordinates,
-calculated using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+Click `GET /addresses/{id}` → **Try it out** → paste the UUID from Step 2 → **Execute**
 
 ---
 
-## Idempotency
+### Step 6 — Update address (`PATCH /addresses/{id}`)
 
-To prevent duplicate submissions (network retries, double-clicks), send an `Idempotency-Key` header with `POST` / `PATCH` requests:
+Click `PATCH /addresses/{id}` → **Try it out** → paste the UUID → send only the fields to change:
 
-```bash
-curl -X POST "http://localhost:8000/addresses/" \
-     -H "X-API-Key: changeme-secret-key" \
-     -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
-     -H "Content-Type: application/json" \
-     -d '{ "name": "Gateway of India", ... }'
+```json
+{
+  "city": "Navi Mumbai"
+}
 ```
 
-- If the same key is sent again within **24 hours**, the original response is returned without re-processing
-- Replayed responses include the header `X-Idempotency-Replayed: true`
-- Error responses (`4xx` / `5xx`) are never cached — the client must use a new key to retry
+---
+
+### Step 7 — Distance search (`GET /addresses/nearby`)
+
+Find all addresses within 200 km of Pune:
+
+| Parameter      | Value     |
+|----------------|-----------|
+| `latitude`     | `18.5195` |
+| `longitude`    | `73.8553` |
+| `distance_km`  | `200`     |
+
+This will return Mumbai, Pune, Nashik, and Shirdi (all within 200 km of Pune).
+
+---
+
+### Step 8 — Delete address (`DELETE /addresses/{id}`)
+
+Click `DELETE /addresses/{id}` → **Try it out** → paste the UUID → **Execute**
+
+Returns `200` with `"status": "success"`.
+
+---
+
+### Step 9 — Test idempotency (`POST /addresses/`)
+
+1. Click `POST /addresses/` → **Try it out**
+2. Add header: `Idempotency-Key: test-key-12345`
+3. Submit the Gateway of India body
+4. Submit the **exact same body again** with the **same key**
+5. Second response will include `X-Idempotency-Replayed: true` — no duplicate is created
+
+---
+
+### Step 10 — Test validation errors
+
+**Invalid latitude → 422:**
+```json
+{
+  "name": "Test",
+  "street": "Test Street",
+  "city": "Mumbai",
+  "state": "Maharashtra",
+  "country": "India",
+  "postal_code": "400001",
+  "latitude": 999,
+  "longitude": 72.8347
+}
+```
+
+**Duplicate coordinates → 409:** Submit the Gateway of India body twice without an idempotency key.
+
+**Missing API key → 401:** Remove the `X-API-Key` header and try any request.
 
 ---
 
 ## Standard Response Format
-
-Every endpoint returns the same envelope:
 
 **Success:**
 ```json
@@ -220,104 +332,32 @@ Every endpoint returns the same envelope:
 
 ---
 
-## Testing in Swagger
+## Field Validations
 
-### Step 1 — Authenticate
-1. Open `http://localhost:8000/docs`
-2. Click the **Authorize** button (top right)
-3. Enter `changeme-secret-key` → click **Authorize**
+| Field         | Rule                                                         |
+|---------------|--------------------------------------------------------------|
+| `latitude`    | `-90.0` to `90.0`                                            |
+| `longitude`   | `-180.0` to `180.0`                                          |
+| All strings   | Non-empty, max length enforced                               |
+| Coordinates   | Unique — no two addresses can share the same lat/lon         |
 
 ---
 
-### Step 2 — Create an address (`POST /addresses/`)
+## Idempotency
 
-```json
-{
-  "name": "Gateway of India",
-  "street": "Apollo Bandar, Colaba",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "country": "India",
-  "postal_code": "400001",
-  "latitude": 18.9220,
-  "longitude": 72.8347
-}
+To prevent duplicate submissions (network retries, double-clicks), send an `Idempotency-Key` header with `POST` / `PATCH` requests:
+
+```bash
+curl -X POST "http://localhost:8000/addresses/" \
+     -H "X-API-Key: prashant" \
+     -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
+     -H "Content-Type: application/json" \
+     -d '{ "name": "Gateway of India", ... }'
 ```
 
-Copy the `id` (UUID) from the response — you'll need it for the next steps.
-
----
-
-### Step 3 — Get the address (`GET /addresses/{id}`)
-
-Paste the UUID from Step 2 into the `id` field.
-
----
-
-### Step 4 — Update the address (`PATCH /addresses/{id}`)
-
-Paste the UUID and send only the fields you want to change:
-
-```json
-{
-  "city": "Navi Mumbai"
-}
-```
-
----
-
-### Step 5 — List addresses (`GET /addresses/`)
-
-| Parameter | Example value | Effect |
-|---|---|---|
-| `search` | `mumbai` | Filter by name / city / street |
-| `offset` | `0` | Start from first record |
-| `limit` | `10` | Return 10 records per page |
-
----
-
-### Step 6 — Distance search (`GET /addresses/nearby`)
-
-Find all addresses within 100 km of Pune:
-
-| Parameter | Value |
-|---|---|
-| `latitude` | `18.5195` |
-| `longitude` | `73.8553` |
-| `distance_km` | `100` |
-
----
-
-### Step 7 — Delete the address (`DELETE /addresses/{id}`)
-
-Paste the UUID — returns `200` with `"status": "success"`.
-
----
-
-### Step 8 — Test idempotency (`POST /addresses/`)
-
-Add header `Idempotency-Key: test-key-12345` and submit the same body twice.  
-Second response will include `X-Idempotency-Replayed: true` — no duplicate is created.
-
----
-
-### Step 9 — Test validation errors
-
-**Invalid latitude → 422:**
-```json
-{
-  "name": "Test",
-  "street": "Test Street",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "country": "India",
-  "postal_code": "400001",
-  "latitude": 999,
-  "longitude": 72.8347
-}
-```
-
-**Duplicate coordinates → 409:** Submit the same body from Step 2 again.
+- Same key within **24 hours** → original response returned, no re-processing
+- Replayed responses include `X-Idempotency-Replayed: true`
+- Error responses (`4xx` / `5xx`) are never cached
 
 ---
 

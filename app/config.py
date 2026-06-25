@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     debug: bool = False
     database_url: str = "sqlite+aiosqlite:///./address_book.db"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    api_key: str = "changeme-secret-key"
+    api_key: str = "prashant"
     pagination_max_limit: int = 500
 
     model_config = SettingsConfigDict(
